@@ -16,6 +16,8 @@ const PARTY: [usize; 8] = [
     0xc324, /* ???? */
     0xf074, /* ???? */
 ];
+const MAGIC: [u8; 4] = [0x16, 0x00, 0x00, 0x00];
+const EXPECTED_LEN_MIN: usize = 1500000;
 
 #[derive(Debug)]
 #[allow(unused)]
@@ -49,19 +51,17 @@ struct StatsParty {
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 2 {
-        bail!("Incorrect number of arguments.")
+        bail!("Incorrect number of arguments.\nUsage: r <path to file>")
     }
 
     let mut save_file = File::open(&args[1]).context("reading save file from argument")?;
-
-    let magic = [0x16, 0x00, 0x00, 0x00];
     let mut save_buf = [0; 4];
 
     save_file
         .read_exact(&mut save_buf)
         .context("read first bytes from save")?;
 
-    if save_buf != magic {
+    if save_buf != MAGIC {
         bail!("Magic: Are you sure this is a save file?");
     }
 
@@ -71,22 +71,21 @@ fn main() -> Result<()> {
         .read_to_end(&mut save)
         .context("reading rest of the file")?;
 
+    if save.len() < EXPECTED_LEN_MIN {
+        bail!("Save file seems invalid: too short.")
+    }
+
     let general: StatsGeneral = StatsGeneral {
-        name: String::from_utf8(save[NAME..NAME + 0x40].to_vec())
+        name: String::from_utf8(save[NAME..NAME + 64].to_vec())
             .context("reading bytes to string")?
             .replace('\0', ""),
-        mag: u32::from_le_bytes([save[MAG], save[MAG + 0x1], save[MAG + 0x2], save[MAG + 0x3]]),
-        money: u32::from_le_bytes([
-            save[MONEY],
-            save[MONEY + 0x1],
-            save[MONEY + 0x2],
-            save[MONEY + 0x3],
-        ]),
-        courage: u16::from_le_bytes([save[VIRTUES], save[VIRTUES + 0x1]]),
-        wisdom: u16::from_le_bytes([save[VIRTUES + 0x2], save[VIRTUES + 0x3]]),
-        tolerance: u16::from_le_bytes([save[VIRTUES + 0x4], save[VIRTUES + 0x5]]),
-        eloquence: u16::from_le_bytes([save[VIRTUES + 0x6], save[VIRTUES + 0x7]]),
-        imagination: u16::from_le_bytes([save[VIRTUES + 0x8], save[VIRTUES + 0x9]]),
+        mag: read_u32(&save, MAG).context("read bytes at MAG offset to u32")?,
+        money: read_u32(&save, MONEY).context("read bytes at MONEY offset to u32")?,
+        courage: read_u16(&save, VIRTUES).context("read bytes at COURAGE offset to u16")?,
+        wisdom: read_u16(&save, VIRTUES + 2).context("read bytes at WISDOM offset to u16")?,
+        tolerance: read_u16(&save, VIRTUES + 4).context("read bytes at TOLERANCE offset to u16")?,
+        eloquence: read_u16(&save, VIRTUES + 6).context("read bytes at ELOQUENCE offset to u16")?,
+        imagination: read_u16(&save, VIRTUES + 8).context("read bytes at IMAG offset to u16")?,
     };
 
     let members: Vec<StatsParty> = {
@@ -94,47 +93,20 @@ fn main() -> Result<()> {
 
         for member in PARTY {
             members.push(StatsParty {
-                currhp: u32::from_le_bytes([
-                    save[member],
-                    save[member + 0x1],
-                    save[member + 0x2],
-                    save[member + 0x3],
-                ]),
-                currmp: u32::from_le_bytes([
-                    save[member + 0x4],
-                    save[member + 0x5],
-                    save[member + 0x6],
-                    save[member + 0x7],
-                ]),
-                totalhp: u32::from_le_bytes([
-                    save[member + 0x8],
-                    save[member + 0x9],
-                    save[member + 0xA],
-                    save[member + 0xB],
-                ]),
-                totalmp: u32::from_le_bytes([
-                    save[member + 0xC],
-                    save[member + 0xD],
-                    save[member + 0xE],
-                    save[member + 0xF],
-                ]),
-                lvl: u32::from_le_bytes([
-                    save[member + 0x14],
-                    save[member + 0x15],
-                    save[member + 0x16],
-                    save[member + 0x17],
-                ]),
-                exp: u32::from_le_bytes([
-                    save[member + 0x18],
-                    save[member + 0x19],
-                    save[member + 0x1A],
-                    save[member + 0x1B],
-                ]),
-                strength: save[member + 0x1E],
-                magic: save[member + 0x1F],
-                endurance: save[member + 0x20],
-                agility: save[member + 0x21],
-                luck: save[member + 0x22],
+                currhp: read_u32(&save, member).context("read bytes at CURRHP offset to u32")?,
+                currmp: read_u32(&save, member + 4)
+                    .context("read bytes at CURRMP offset to u32")?,
+                totalhp: read_u32(&save, member + 8)
+                    .context("read bytes at TOTALHP offset to u32")?,
+                totalmp: read_u32(&save, member + 12)
+                    .context("read bytes at TOTALMP offset to u32")?,
+                lvl: read_u32(&save, member + 20).context("read bytes at LVL offset to u32")?,
+                exp: read_u32(&save, member + 24).context("read bytes at EXP offset to u32")?,
+                strength: save[member + 30],
+                magic: save[member + 31],
+                endurance: save[member + 32],
+                agility: save[member + 33],
+                luck: save[member + 34],
             });
         }
         members
@@ -147,4 +119,19 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn read_u32(save: &[u8], offset: usize) -> Result<u32> {
+    Ok(u32::from_le_bytes(
+        save[offset..offset + 4]
+            .try_into()
+            .context("convert slice to vec for reading u32")?,
+    ))
+}
+fn read_u16(save: &[u8], offset: usize) -> Result<u16> {
+    Ok(u16::from_le_bytes(
+        save[offset..offset + 2]
+            .try_into()
+            .context("convert slice to vec for reading u16")?,
+    ))
 }
