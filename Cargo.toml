@@ -1,7 +1,9 @@
 [package]
 name = "metaphor-save-edit"
 version = "0.1.0"
+description = "Basic save editor for Metaphor: ReFantazio"
 edition = "2024"
 
 [dependencies]
 anyhow = "1.0.102"
+clap = { version = "4.6.1", features = ["derive"] }
