@@ -14,7 +14,7 @@ use crate::{
 };
 
 const MAGIC: [u8; 4] = [0x16, 0x00, 0x00, 0x00];
-const EXPECTED_LEN_RANGE: (usize, usize) = (1500000, 3000000);
+const EXPECTED_LEN_RANGE: (usize, usize) = (1000000, 3000000);
 
 pub fn process_save(args: &Args) -> Result<()> {
     let mut save_file = File::options()
@@ -66,22 +66,65 @@ pub fn process_save(args: &Args) -> Result<()> {
                 write_u32(&mut file, *money, MONEY)?;
             }
             if let Some(courage) = courage {
-                write_u16(&mut file, *courage, VIRTUES)?;
+                write_u16(&mut file, *courage as u16, VIRTUES)?;
             }
             if let Some(wisdom) = wisdom {
                 write_u16(&mut file, *wisdom, VIRTUES + 2)?;
             }
             if let Some(tolerance) = tolerance {
-                write_u16(&mut file, *tolerance, VIRTUES + 4)?;
+                write_u16(&mut file, *tolerance as u16, VIRTUES + 4)?;
             }
             if let Some(eloquence) = eloquence {
-                write_u16(&mut file, *eloquence, VIRTUES + 6)?;
+                write_u16(&mut file, *eloquence as u16, VIRTUES + 6)?;
             }
             if let Some(imagination) = imagination {
                 write_u16(&mut file, *imagination, VIRTUES + 8)?;
             }
         }
-        Some(Commands::Party) => {}
+        Some(Commands::Party {
+            character,
+            hp,
+            mp,
+            lvl,
+            exp,
+            strength,
+            magic,
+            endurance,
+            agility,
+            luck,
+        }) => {
+            let party_char = PARTY[(character - 1) as usize];
+
+            if let Some(hp) = hp {
+                write_u16(&mut file, *hp, party_char + HP)?;
+                write_u16(&mut file, *hp, party_char + HP + 8)?;
+            }
+            if let Some(mp) = mp {
+                write_u16(&mut file, *mp, party_char + MP)?;
+                write_u16(&mut file, *mp, party_char + MP + 8)?;
+            }
+            if let Some(lvl) = lvl {
+                write_u16(&mut file, *lvl, party_char + LVL)?;
+            }
+            if let Some(exp) = exp {
+                write_u32(&mut file, *exp, party_char + EXP)?;
+            }
+            if let Some(strength) = strength {
+                write_u16(&mut file, *strength as u16, party_char + STATS)?;
+            }
+            if let Some(magic) = magic {
+                write_u16(&mut file, *magic as u16, party_char + STATS + 1)?;
+            }
+            if let Some(endurance) = endurance {
+                write_u16(&mut file, *endurance as u16, party_char + STATS + 2)?;
+            }
+            if let Some(agility) = agility {
+                write_u16(&mut file, *agility as u16, party_char + STATS + 3)?;
+            }
+            if let Some(luck) = luck {
+                write_u16(&mut file, *luck as u16, party_char + STATS + 4)?;
+            }
+        }
         None => {}
     }
 
@@ -106,35 +149,37 @@ fn print_stats(save: &[u8], show: bool) -> Result<()> {
         imagination: read_u16(save, VIRTUES + 8).context("read bytes at IMAG offset to u16")?,
     };
 
-    let _members: Vec<StatsParty> = {
-        let mut members = Vec::new();
+    let characters: Vec<StatsParty> = {
+        let mut characters = Vec::new();
 
-        for member in PARTY {
-            members.push(StatsParty {
-                currhp: read_u32(save, member).context("read bytes at CURRHP offset to u32")?,
-                currmp: read_u32(save, member + 4).context("read bytes at CURRMP offset to u32")?,
-                totalhp: read_u32(save, member + 8)
+        for character in PARTY {
+            characters.push(StatsParty {
+                currhp: read_u32(save, character + HP)
+                    .context("read bytes at CURRHP offset to u32")?,
+                currmp: read_u32(save, character + MP)
+                    .context("read bytes at CURRMP offset to u32")?,
+                totalhp: read_u32(save, character + HP + 8)
                     .context("read bytes at TOTALHP offset to u32")?,
-                totalmp: read_u32(save, member + 12)
+                totalmp: read_u32(save, character + MP + 8)
                     .context("read bytes at TOTALMP offset to u32")?,
-                lvl: read_u32(save, member + 20).context("read bytes at LVL offset to u32")?,
-                exp: read_u32(save, member + 24).context("read bytes at EXP offset to u32")?,
-                strength: save[member + 30],
-                magic: save[member + 31],
-                endurance: save[member + 32],
-                agility: save[member + 33],
-                luck: save[member + 34],
+                lvl: read_u32(save, character + LVL).context("read bytes at LVL offset to u32")?,
+                exp: read_u32(save, character + EXP).context("read bytes at EXP offset to u32")?,
+                strength: save[character + STATS],
+                magic: save[character + STATS + 1],
+                endurance: save[character + STATS + 2],
+                agility: save[character + STATS + 3],
+                luck: save[character + STATS + 4],
             });
         }
-        members
+        characters
     };
 
     if show {
         println!("General: {:#?}", general);
 
-        // for (i, member) in members.iter().enumerate() {
-        //     println!("Member {}: {:#?}", i + 1, member);
-        // }
+        for (i, c) in characters.iter().enumerate() {
+            println!("Character {}: {:#?}", i + 1, c);
+        }
     }
 
     Ok(())
