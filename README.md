@@ -14,13 +14,21 @@ metaphor-save-edit [OPTIONS] --file <FILE> [COMMAND]
 
 Commands:
   stats  Edit general stats like money, mag or virtues
+  
+         --mag <MAG>                      amount of mag to set
+         --money <MONEY>                  amount of money to set
+         -c, --courage <COURAGE>          amount of courage to set
+         -w, --wisdom <WISDOM>            amount of wisdom to set
+         -t, --tolerance <TOLERANCE>      amount of tolerance to set
+         -e, --eloquence <ELOQUENCE>      amount of eloquence to set
+         -i, --imagination <IMAGINATION>  amount of imagination to set
+  
   party  Edit party stats like HP, MP, level
   help   Print this message or the help of the given subcommand(s)
 
 Options:
-  -s, --show         Show all stats
+  -s, --show         Show all stats (default)
   -h, --help         Print help
-  -V, --version      Print version
 ```
 ## Notes 
 Can only use on general stats (MAG, Money, Virtues) currently.
