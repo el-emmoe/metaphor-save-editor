@@ -1,6 +1,6 @@
 [package]
 name = "metaphor-save-edit"
-version = "0.2.0"
+version = "0.3.0"
 description = "Basic CLI save editor for Metaphor: ReFantazio"
 edition = "2024"
 
