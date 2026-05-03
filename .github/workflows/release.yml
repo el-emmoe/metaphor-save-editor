@@ -22,7 +22,7 @@ jobs:
         run: cargo build --release --verbose
 
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: metaphor-save-edit-windows
           path: target/release/metaphor-save-edit.exe
@@ -54,13 +54,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Windows artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: metaphor-save-edit-windows
           path: ./artifacts/windows
 
       - name: Download Linux artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: metaphor-save-edit-linux
           path: ./artifacts/linux
