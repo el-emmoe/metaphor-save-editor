@@ -11,7 +11,7 @@ pub(crate) const PARTY: [usize; 8] = [
     0x7f28, /* ???? */
     0x95d0, /* ???? */
     0xc320, /* ???? */
-    0xf074, /* ???? */
+    0xf070, /* ???? */
 ];
 
 pub(crate) const HP: usize = 0x4;
