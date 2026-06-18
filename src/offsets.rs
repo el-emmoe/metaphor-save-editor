@@ -7,8 +7,8 @@ pub(crate) const PARTY: [usize; 8] = [
     0x3b30, /* Strohl */
     0x51d8, /* Hulkenberg */
     0x6880, /* Heismay */
+    0x7f28, /* Junah */
     // not finished with the game myself yet l o l
-    0x7f28, /* ???? */
     0x95d0, /* ???? */
     0xc320, /* ???? */
     0xf070, /* ???? */
